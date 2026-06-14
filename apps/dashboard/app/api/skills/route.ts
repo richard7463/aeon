@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { execSync } from 'child_process'
-import { resolve } from 'path'
+import { REPO_ROOT } from '@/lib/gh'
+import { errorResponse, syncResult } from '@/lib/http'
 import { getFileContent, getDirectory, updateFile, commitAndPush } from '@/lib/github'
 import {
   parseConfig,
@@ -16,7 +17,7 @@ import type { Skill } from '@/lib/types'
 function getRepoSlug(): string {
   if (process.env.GITHUB_REPO) return process.env.GITHUB_REPO
   try {
-    const url = execSync('git remote get-url origin', { stdio: 'pipe', cwd: resolve(process.cwd(), '..', '..') }).toString().trim()
+    const url = execSync('git remote get-url origin', { stdio: 'pipe', cwd: REPO_ROOT }).toString().trim()
     const m = url.match(/github\.com[/:]([\w.-]+\/[\w.-]+?)(?:\.git)?$/)
     return m ? m[1] : ''
   } catch {
@@ -73,8 +74,7 @@ export async function GET() {
     const repo = getRepoSlug()
     return NextResponse.json({ skills, model: config.model, gateway: config.gateway, repo, jsonrenderEnabled: config.jsonrenderEnabled })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(error, 'Unknown error')
   }
 }
 
@@ -112,10 +112,9 @@ export async function PATCH(request: Request) {
       sync = commitAndPush(['aeon.yml'], msg)
     }
 
-    return NextResponse.json({ ok: true, synced: sync.synced, ...(sync.reason ? { syncError: sync.reason } : {}) })
+    return NextResponse.json(syncResult(sync))
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(error, 'Unknown error')
   }
 }
 
@@ -128,20 +127,28 @@ export async function DELETE(request: Request) {
 
     await deleteDirectory(`skills/${name}`, `chore: delete ${name} skill`)
 
+    let configUpdated = true
+    let configError: string | undefined
     try {
       const { content, sha } = await getFileContent('aeon.yml')
       const updated = removeSkillFromConfig(content, name)
       if (updated !== content) {
         await updateFile('aeon.yml', updated, sha, `chore: remove ${name} from config`)
       }
-    } catch { /* config cleanup is best-effort */ }
+    } catch (e: unknown) {
+      // The aeon.yml write is a real GitHub-API/file-IO boundary that can throw;
+      // the skill dir is already deleted, so don't fail the request — but surface
+      // it instead of swallowing it silently and reporting a clean removal.
+      configUpdated = false
+      configError = e instanceof Error ? e.message : 'Failed to update aeon.yml'
+      console.error(`skills DELETE: failed to remove ${name} from aeon.yml:`, e)
+    }
 
     // One commit for both the removed skill dir and the aeon.yml cleanup.
     const sync = commitAndPush(['aeon.yml', `skills/${name}`], `chore: remove ${name} skill`)
 
-    return NextResponse.json({ ok: true, synced: sync.synced, ...(sync.reason ? { syncError: sync.reason } : {}) })
+    return NextResponse.json({ ...syncResult(sync), configUpdated, ...(configError ? { configError } : {}) })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(error, 'Unknown error')
   }
 }

@@ -28,6 +28,11 @@ export const GATEWAY_PROVIDERS: GatewayProvider[] = ['auto', 'direct', 'bankr', 
 
 export interface UploadFile { path: string; content: string }
 
+// `.mcp.json` server map. A server's shape varies by transport (http/stdio),
+// so each entry is an open record; consumers narrow fields as needed.
+export type McpServer = Record<string, unknown>
+export type McpServers = Record<string, McpServer>
+
 export interface SkillMetrics {
   name: string
   total: number
@@ -60,4 +65,92 @@ export interface AnalyticsData {
   skills: SkillMetrics[]
   insights: Insight[]
   summary: AnalyticsSummary
+}
+
+// --- Client-facing API response shapes ---
+// Narrow views of what the API routes' NextResponse.json(...) actually return,
+// for the fetch reads in app/page.tsx. Fields a route may omit stay optional so
+// the casts don't introduce false non-null assumptions.
+
+// GET /api/skills
+export interface SkillsResponse {
+  skills: Skill[]
+  model?: string
+  gateway?: { provider: GatewayProvider }
+  repo?: string
+  jsonrenderEnabled?: boolean
+}
+
+// GET /api/runs
+export interface RunsResponse {
+  runs: Run[]
+}
+
+// GET /api/secrets
+export interface SecretsResponse {
+  secrets?: Secret[]
+  ghReady?: boolean
+}
+
+// GET /api/sync
+export interface SyncStatusResponse {
+  hasChanges: boolean
+  changedFiles?: number
+  behind?: number
+}
+
+// GET /api/mcp
+export interface McpResponse {
+  exists?: boolean
+  servers?: McpServers
+  sha?: string
+  raw?: string
+}
+
+// GET /api/outputs
+export interface OutputsResponse {
+  outputs?: SkillOutput[]
+}
+
+// GET /api/strategy
+export interface StrategyResponse {
+  exists?: boolean
+  content?: string
+  sha?: string
+}
+
+// GET /api/soul
+export interface SoulResponse {
+  soul?: { content: string; exists?: boolean }
+  style?: { content: string; exists?: boolean }
+}
+
+// Standard write+sync body ({ ok, synced, syncError? }) from lib/http syncResult.
+export interface SyncResult {
+  ok?: boolean
+  synced?: boolean
+  syncError?: string
+}
+
+// POST /api/soul/examples — syncResult plus the installed file contents on
+// success, or { error } on the not-found / failure paths.
+export interface SoulExampleResponse extends SyncResult {
+  soul?: string
+  style?: string
+  error?: string
+}
+
+// POST /api/upload
+export interface UploadResponse {
+  name: string
+  filesWritten?: number
+  detectedSecrets?: string[]
+  configUpdated?: boolean
+  configError?: string
+  synced?: boolean
+}
+
+// Generic { error?: string } body returned on a route's non-OK paths.
+export interface ErrorResponse {
+  error?: string
 }

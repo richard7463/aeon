@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { execFileSync } from 'child_process'
 import { ghAvailable, ghArgsRepo } from '@/lib/gh'
 import { syncGatewayProvider } from '@/lib/gateway'
+import { errorResponse } from '@/lib/http'
 import type { Secret } from '@/lib/types'
 
 const BUILTIN_SECRETS: Omit<Secret, 'isSet'>[] = [
@@ -49,15 +50,16 @@ const BUILTIN_SECRETS: Omit<Secret, 'isSet'>[] = [
 
 const BUILTIN_NAMES = new Set(BUILTIN_SECRETS.map(s => s.name))
 
-// Gateway key secrets — setting one flips aeon.yml's gateway.provider to the
-// mapped provider; deleting one reverts it to `direct`.
-const GATEWAY_SECRETS: Record<string, string> = {
-  BANKR_LLM_KEY: 'bankr',
-  OPENROUTER_API_KEY: 'openrouter',
-  USEPOD_TOKEN: 'usepod',
-  VENICE_API_KEY: 'venice',
-  SURPLUS_API_KEY: 'surplus',
-}
+// Gateway key secrets — setting or deleting any gateway key re-syncs aeon.yml's
+// gateway.provider to `auto`; the workflow resolves the live provider at run
+// time from which secrets are set.
+const GATEWAY_SECRET_NAMES = new Set([
+  'BANKR_LLM_KEY',
+  'OPENROUTER_API_KEY',
+  'USEPOD_TOKEN',
+  'VENICE_API_KEY',
+  'SURPLUS_API_KEY',
+])
 
 // Valid env var name pattern
 const VALID_SECRET_NAME = /^[A-Z][A-Z0-9_]{1,}$/
@@ -123,11 +125,10 @@ export async function POST(request: Request) {
     })
     // Keep routing on `auto` so the workflow resolves the provider at run time
     // from whichever keys are set (scripts/llm-gateway.sh) — no per-key pinning.
-    if (GATEWAY_SECRETS[name]) await syncGatewayProvider('auto')
+    if (GATEWAY_SECRET_NAMES.has(name)) await syncGatewayProvider()
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to set secret'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(error, 'Failed to set secret')
   }
 }
 
@@ -146,10 +147,9 @@ export async function DELETE(request: Request) {
     execFileSync('gh', ['secret', 'delete', name, ...ghArgsRepo()], { stdio: 'pipe', cwd: process.cwd() })
     // Stay on `auto`: dropping a key just makes run-time resolution fall through
     // to the next provider whose secret is still set (or `direct`).
-    if (GATEWAY_SECRETS[name]) await syncGatewayProvider('auto')
+    if (GATEWAY_SECRET_NAMES.has(name)) await syncGatewayProvider()
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to delete secret'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return errorResponse(error, 'Failed to delete secret')
   }
 }
