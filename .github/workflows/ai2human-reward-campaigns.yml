@@ -1,0 +1,38 @@
+name: AI2Human Reward Campaign Watchdog
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai2human-reward-campaign-watchdog
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Run reward campaign reconciler
+        env:
+          AI2HUMAN_CRON_ENDPOINT: ${{ vars.AI2HUMAN_CRON_ENDPOINT || 'https://ai2human.work/api/cron/reward-campaigns' }}
+          AI2HUMAN_CRON_SECRET: ${{ secrets.AI2HUMAN_CRON_SECRET }}
+          AI2HUMAN_TASK_BASE_URL: ${{ vars.AI2HUMAN_TASK_BASE_URL || 'https://ai2human.work/tasks' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: node scripts/ai2human-reward-campaign-reconciler.mjs
