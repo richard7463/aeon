@@ -9,19 +9,23 @@ export const MODELS = [
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
 ]
 
-// Models offered when the Grok Build (`grok`) harness is selected (from
-// `grok models`). grok-composer-2.5-fast is grok's default; grok-build is the
-// alternative. Grok also accepts custom models via ~/.grok/config.toml.
+// Models offered when the Grok (`grok`) harness is selected. Only
+// grok-composer-2.5-fast (grok's default) is exposed: it runs cleanly end-to-end
+// in GitHub Actions. grok-build is intentionally NOT offered — it Cancels every
+// time in the Actions sandbox (works locally, drops its relay/entitlement path in
+// CI), so selecting it would be a footgun. Grok still accepts custom model ids
+// via ~/.grok/config.toml for anyone who needs one.
 export const GROK_MODELS = [
   { id: 'grok-composer-2.5-fast', label: 'Composer 2.5 Fast' },
-  { id: 'grok-build', label: 'Grok Build' },
 ]
 
-// Harnesses (agent CLIs). `claude` = Claude Code (default, uses the AI Gateway);
-// `grok` = Grok Build (own X-account/API-key auth, own model list above).
+// Harnesses (agent CLIs). `claude` = Claude Code (default, uses the AI Gateway),
+// labelled "Anthropic" in the UI; `grok` = Grok Build (own X-account/API-key
+// auth, own model list above), labelled "Grok". The `id`s are the on-disk
+// harness values (aeon.yml `harness:`) and never change — only the labels do.
 export const HARNESSES = [
-  { id: 'claude', label: 'Claude Code' },
-  { id: 'grok', label: 'Grok Build' },
+  { id: 'claude', label: 'Anthropic' },
+  { id: 'grok', label: 'Grok' },
 ] as const
 
 export function modelsForHarness(harness: string) {
