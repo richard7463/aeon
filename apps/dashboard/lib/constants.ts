@@ -9,12 +9,37 @@ export const MODELS = [
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
 ]
 
+// Models offered when the Grok Build (`grok`) harness is selected (from
+// `grok models`). grok-composer-2.5-fast is grok's default; grok-build is the
+// alternative. Grok also accepts custom models via ~/.grok/config.toml.
+export const GROK_MODELS = [
+  { id: 'grok-composer-2.5-fast', label: 'Composer 2.5 Fast' },
+  { id: 'grok-build', label: 'Grok Build' },
+]
+
+// Harnesses (agent CLIs). `claude` = Claude Code (default, uses the AI Gateway);
+// `grok` = Grok Build (own X-account/API-key auth, own model list above).
+export const HARNESSES = [
+  { id: 'claude', label: 'Claude Code' },
+  { id: 'grok', label: 'Grok Build' },
+] as const
+
+export function modelsForHarness(harness: string) {
+  return harness === 'grok' ? GROK_MODELS : MODELS
+}
+
 // Secret names that authenticate Aeon's model access: Claude's own credentials
-// (OAuth token or Anthropic key) plus the gateway-provider keys that route
-// Claude through a third party. Setting any one means the agent can run, so the
-// top-bar "Auth" call-to-action hides once at least one is present. The client
-// derives auth state from /api/secrets by testing membership in this list.
-export const AUTH_SECRETS = ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', ...GATEWAY_SECRET_NAMES]
+// (OAuth token or Anthropic key), the gateway-provider keys that route Claude
+// through a third party (incl. XAI_API_KEY via the grok gateway), and the grok
+// harness's X-account OAuth session (GROK_CREDENTIALS). Setting any one means the
+// agent can run, so the top-bar "Auth" call-to-action hides once at least one is
+// present. The client derives auth state from /api/secrets by testing membership.
+export const AUTH_SECRETS = ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'GROK_CREDENTIALS', ...GATEWAY_SECRET_NAMES]
+
+// Auth secrets that specifically authenticate the GROK harness (X-account OAuth
+// session or an xAI key). A Claude token does NOT authenticate grok, so the Auth
+// CTA must key off these when the grok harness is selected.
+export const GROK_AUTH_SECRETS = ['GROK_CREDENTIALS', 'XAI_API_KEY']
 
 export const DAYS = [
   { label: 'All', value: -1 }, { label: 'Mon', value: 1 }, { label: 'Tue', value: 2 },
