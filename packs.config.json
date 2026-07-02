@@ -18,8 +18,7 @@
       "onboard",
       "cost-report",
       "reflect",
-      "digest",
-      "priority-brief"
+      "digest"
     ]
   },
   "packs": [
@@ -32,11 +31,8 @@
       "skills": [
         "spawn-instance",
         "fleet-control",
-        "fleet-scorecard",
-        "contributor-reward",
         "distribute-tokens",
         "deploy-prototype",
-        "external-feature",
         "vuln-scanner"
       ]
     },

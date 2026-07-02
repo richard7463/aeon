@@ -97,27 +97,22 @@ xai_search() {
 
 case "$SKILL" in
 
-  refresh-x)
-    # Fetch recent tweets from a specific account
-    # Set var to the X handle (without @). Default: reads from aeon.yml or MEMORY.md
-    ACCOUNT="${VAR:-}"
-    if [ -z "$ACCOUNT" ]; then
-      echo "xai-prefetch: refresh-x requires var (X handle), skipping"
+  write-tweet)
+    # Only the `remix` format needs an X prefetch (older tweets to remix).
+    # drafts/thread use built-in WebSearch or fetch live, so skip otherwise.
+    FIRST=$(printf '%s' "${VAR:-}" | awk '{print tolower($1)}')
+    if [ "$FIRST" != "remix" ]; then
+      echo "xai-prefetch: write-tweet var='${VAR:-}' is not remix format — no X prefetch needed"
       exit 0
     fi
+    # The remix branch resolves its handle from $X_HANDLE (then soul/SOUL.md in-skill).
+    ACCOUNT=$(printf '%s' "${X_HANDLE:-}" | tr -d ' ')
     ACCOUNT="${ACCOUNT#@}"
-    xai_search "refresh-x.json" \
-      "Search X for all tweets posted by @${ACCOUNT} from ${YESTERDAY} to ${TODAY}. Return every tweet — not just popular ones. For each: the full tweet text, date/time posted, engagement stats (likes, retweets, replies), and the direct link (https://x.com/${ACCOUNT}/status/ID). If it was a reply, note who it was replying to. If it was a quote tweet, include what was quoted. Return as a chronological list."
-    ;;
-
-  remix-tweets)
-    # Fetch older tweets from an account for remixing
-    ACCOUNT="${VAR:-}"
     if [ -z "$ACCOUNT" ]; then
-      echo "xai-prefetch: remix-tweets requires var (X handle), skipping"
+      echo "xai-prefetch: write-tweet remix has no \$X_HANDLE — skipping X prefetch (skill resolves handle from soul/SOUL.md or aborts)"
       exit 0
     fi
-    ACCOUNT="${ACCOUNT#@}"
+    # Default remix window: 30–180 days ago. Custom windows resolve live in-skill.
     FROM_DATE=$(date -u -d "180 days ago" +%Y-%m-%d 2>/dev/null || date -u -v-180d +%Y-%m-%d)
     TO_DATE_REMIX=$(date -u -d "30 days ago" +%Y-%m-%d 2>/dev/null || date -u -v-30d +%Y-%m-%d)
     xai_search "remix-tweets.json" \
@@ -149,16 +144,6 @@ case "$SKILL" in
       "Profile the X account @${ACCOUNT} so an AI can learn to think and write like this person. Return TWO things. FIRST, the account profile: display name, bio, and a one-paragraph read on who they are and what they post about. SECOND, a diverse sample of 40 of their own original posts (not retweets) from ${SOUL_FROM} to ${TODAY} — deliberately mix topics, tones, and engagement levels (include quiet posts, not just viral ones), and include some opinionated takes, some reactions, and some longer posts. For each post: the full text, date posted, like/retweet/reply counts, and the direct link (https://x.com/${ACCOUNT}/status/ID). Return the profile first, then a numbered list of posts." \
       "$SOUL_FROM" "$TODAY" \
       "\"allowed_x_handles\": [\"${ACCOUNT}\"]"
-    ;;
-
-  tweet-roundup)
-    if [ -n "$VAR" ]; then
-      # Single topic override
-      xai_search "roundup-var.json" \
-        "Search X for the latest popular tweets about: ${VAR} from ${YESTERDAY} to ${TODAY}. Return the 3-5 most interesting or viral tweets. For each: 1) the @handle, 2) a one-line summary, 3) the tweet permalink (https://x.com/username/status/ID)."
-    else
-      echo "xai-prefetch: tweet-roundup has no var, skipping (set var to a topic)"
-    fi
     ;;
 
   narrative-tracker)
@@ -198,59 +183,103 @@ case "$SKILL" in
     ;;
 
   fetch-tweets)
-    if [ -n "$VAR" ]; then
-      xai_search "fetch-tweets.json" \
-        "Search X for the latest tweets about: ${VAR} from ${YESTERDAY} to ${TODAY}. Return the 10 most interesting tweets. For each: @handle, full tweet text, date, engagement stats (likes, retweets, replies), and the direct link (https://x.com/username/status/ID)."
-    else
-      echo "xai-prefetch: fetch-tweets has no var, skipping"
-    fi
+    # Consolidated X prefetch for the fetch-tweets hub (absorbed tweet-digest,
+    # tweet-roundup, list-digest, refresh-x, agent-buzz). Parse "<source>:<arg>"
+    # with shape inference, then prefetch the keyword / topic / single-account
+    # modes (the ones refresh-x + tweet-roundup + keyword prefetched). list,
+    # agent-buzz and account-digest run live in-skill (no prefetch pre-merge).
+    RAW="${VAR:-}"
+    SRC="${RAW%%:*}"; ARG="${RAW#*:}"; [ "$ARG" = "$RAW" ] && ARG=""   # no colon → ARG empty
+    case "$SRC" in
+      keyword) MODE=keyword ;;
+      topic)   MODE=topic ;;
+      account) MODE=account ;;
+      list|agent-buzz|"") MODE=skip ;;                 # list/agent-buzz/empty resolve live in-skill
+      *)  ARG="$RAW"                                    # no recognised prefix → infer from shape
+          if printf '%s' "$RAW" | grep -Eq '^[0-9,]+$'; then MODE=skip
+          elif printf '%s' "$RAW" | grep -Eq '^@?[A-Za-z0-9_]{1,15}$'; then MODE=account
+          else MODE=keyword; fi ;;
+    esac
+    case "$MODE" in
+      keyword)
+        xai_search "fetch-tweets.json" \
+          "Search X for the latest tweets about: ${ARG} from ${YESTERDAY} to ${TODAY}. Return the 10 most interesting tweets. For each: @handle, full tweet text, date, engagement stats (likes, retweets, replies), and the direct link (https://x.com/username/status/ID)."
+        ;;
+      topic)
+        if [ -n "$ARG" ]; then
+          xai_search "fetch-tweets-topic.json" \
+            "Search X for the latest popular tweets about: ${ARG} from ${YESTERDAY} to ${TODAY}. Return the 3-5 most interesting or viral tweets. For each: 1) the @handle, 2) a one-line summary, 3) the tweet permalink (https://x.com/username/status/ID)."
+        else
+          echo "xai-prefetch: fetch-tweets topic list resolved in-skill (MEMORY.md/defaults) — running live"
+        fi
+        ;;
+      account)
+        ACCOUNT="${ARG#@}"
+        if [ -z "$ACCOUNT" ]; then
+          echo "xai-prefetch: fetch-tweets account-digest (all tracked handles) runs live in-skill"
+        else
+          xai_search "fetch-tweets-account.json" \
+            "Search X for all tweets posted by @${ACCOUNT} from ${YESTERDAY} to ${TODAY}. Return every tweet — not just popular ones. For each: the full tweet text, date/time posted, engagement stats (likes, retweets, replies), and the direct link (https://x.com/${ACCOUNT}/status/ID). If it was a reply, note who it was replying to. If it was a quote tweet, include what was quoted. Return as a chronological list." \
+            "$YESTERDAY" "$TODAY" \
+            "\"allowed_x_handles\": [\"${ACCOUNT}\"]"
+        fi
+        ;;
+      skip)
+        echo "xai-prefetch: fetch-tweets var='${RAW}' → list/agent-buzz/empty mode runs live in-skill (no prefetch)"
+        ;;
+    esac
     ;;
 
-  content-performance)
-    SEVEN_DAYS_AGO=$(date -u -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -u -v-7d +%Y-%m-%d)
-    HANDLE="${VAR:-}"
-    if [ -z "$HANDLE" ] && [ -f soul/SOUL.md ]; then
-      HANDLE=$(grep -oE '@[A-Za-z0-9_]{2,15}' soul/SOUL.md | head -1 | tr -d '@')
-    fi
-    if [ -z "$HANDLE" ]; then
-      echo "xai-prefetch: content-performance — no handle (var empty, none found in soul/SOUL.md), skipping"
-    else
-      xai_search "content-performance.json" \
-        "Search X for all public tweets posted by @${HANDLE} between ${SEVEN_DAYS_AGO} and ${TODAY}. Include original tweets, replies, and quote tweets. For each tweet return: the full text (up to 150 chars), date posted (YYYY-MM-DD), like count, retweet count, quote tweet count, and reply count. Return up to 25 tweets sorted by total engagement (likes + retweets*2 + quotes*3) descending. If fewer tweets exist in the window, return all of them." \
-        "$SEVEN_DAYS_AGO" "$TODAY" \
-        "\"allowed_x_handles\": [\"${HANDLE}\"]"
-    fi
-    ;;
+  product-pulse)
+    # product-pulse absorbed repo-pulse (gh, no prefetch), content-performance
+    # (X 7-day tweets) and vercel-projects (Vercel REST). Parse facet + arg and
+    # stage the canonical .xai-cache/product-pulse-*.json each facet reads.
+    FACET=$(printf '%s' "${VAR:-}" | awk '{print tolower($1)}')
+    ARG=$(printf '%s' "${VAR:-}" | awk '{print $2}')
+    case "$FACET" in dry-run | "") FACET=all ;; esac
 
-  vercel-projects)
-    # Pre-fetch Vercel API data (requires auth — can't be done in sandbox)
-    if [ -z "${VERCEL_TOKEN:-}" ]; then
-      echo "xai-prefetch: VERCEL_TOKEN not set, skipping vercel-projects"
-    else
-      echo "xai-prefetch: fetching vercel-projects.json ..."
-      TEAM_PARAM=""
-      [ -n "$VAR" ] && TEAM_PARAM="&teamId=$VAR"
-      PROJECTS=$(curl -s --max-time 30 "https://api.vercel.com/v9/projects?limit=100${TEAM_PARAM}" \
-        -H "Authorization: Bearer $VERCEL_TOKEN" 2>&1) || {
-        echo "::warning::xai-prefetch: FAILED vercel-projects (curl error)"
-      }
-      if [ -n "$PROJECTS" ] && echo "$PROJECTS" | jq empty 2>/dev/null; then
-        echo "$PROJECTS" > ".xai-cache/vercel-projects.json"
-        echo "xai-prefetch: saved vercel-projects.json"
-
-        # Pre-fetch latest deployment for each project
-        PROJECT_IDS=$(echo "$PROJECTS" | jq -r '.projects[]?.id // empty' 2>/dev/null)
-        DEPLOYS="[]"
-        for PID in $PROJECT_IDS; do
-          DEP=$(curl -s --max-time 15 "https://api.vercel.com/v6/deployments?projectId=${PID}&limit=1&target=production" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" 2>/dev/null) || continue
-          DEPLOYS=$(echo "$DEPLOYS" | jq --arg pid "$PID" --argjson dep "$DEP" '. + [{"projectId": $pid, "deployment": $dep}]' 2>/dev/null) || continue
-        done
-        echo "$DEPLOYS" > ".xai-cache/vercel-deployments.json"
-        echo "xai-prefetch: saved vercel-deployments.json"
+    # all facet — X followers/posts per tracked handle → product-pulse-x.json
+    if [ "$FACET" = "all" ] && [ -f memory/products.md ]; then
+      HANDLES=$(grep -oE '@[A-Za-z0-9_]{2,15}' memory/products.md | tr -d '@' | sort -u | paste -sd, -)
+      if [ -n "$HANDLES" ]; then
+        xai_search "product-pulse-x.json" \
+          "For each of these X/Twitter handles (${HANDLES}), return the current follower count and total post count, one line each as 'handle|followers|posts'. Use the most recent public data."
       else
-        echo "::warning::xai-prefetch: vercel-projects response invalid"
+        echo "xai-prefetch: product-pulse all-facet — no @handles in memory/products.md, skipping X prefetch"
       fi
+    fi
+
+    # content facet — one handle's 7-day tweets → product-pulse-content.json
+    if [ "$FACET" = "content" ]; then
+      SEVEN_DAYS_AGO=$(date -u -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -u -v-7d +%Y-%m-%d)
+      HANDLE="$ARG"
+      if [ -z "$HANDLE" ] && [ -f soul/SOUL.md ]; then
+        HANDLE=$(grep -oE '@[A-Za-z0-9_]{2,15}' soul/SOUL.md | head -1 | tr -d '@')
+      fi
+      if [ -z "$HANDLE" ]; then
+        echo "xai-prefetch: product-pulse content facet — no handle (arg empty, none in soul/SOUL.md), skipping"
+      else
+        xai_search "product-pulse-content.json" \
+          "Search X for all public tweets posted by @${HANDLE} between ${SEVEN_DAYS_AGO} and ${TODAY}. Include original tweets, replies, and quote tweets. For each tweet return: the full text (up to 150 chars), date posted (YYYY-MM-DD), like count, retweet count, quote tweet count, and reply count. Return up to 25 tweets sorted by total engagement (likes + retweets*2 + quotes*3) descending. If fewer tweets exist in the window, return all of them." \
+          "$SEVEN_DAYS_AGO" "$TODAY" \
+          "\"allowed_x_handles\": [\"${HANDLE}\"]"
+      fi
+    fi
+
+    # all + deploys facets — Vercel projects (auth) → product-pulse-deploys.json
+    if { [ "$FACET" = "all" ] || [ "$FACET" = "deploys" ]; } && [ -n "${VERCEL_TOKEN:-}" ]; then
+      TEAM_PARAM=""
+      [ "$FACET" = "deploys" ] && [ -n "$ARG" ] && TEAM_PARAM="&teamId=$ARG"
+      PROJECTS=$(curl -s --max-time 30 "https://api.vercel.com/v9/projects?limit=100${TEAM_PARAM}" \
+        -H "Authorization: Bearer $VERCEL_TOKEN" 2>&1) || echo "::warning::xai-prefetch: FAILED product-pulse-deploys (curl error)"
+      if [ -n "$PROJECTS" ] && echo "$PROJECTS" | jq empty 2>/dev/null; then
+        echo "$PROJECTS" > ".xai-cache/product-pulse-deploys.json"
+        echo "xai-prefetch: saved product-pulse-deploys.json"
+      else
+        echo "::warning::xai-prefetch: product-pulse-deploys response invalid"
+      fi
+    elif [ "$FACET" = "all" ] || [ "$FACET" = "deploys" ]; then
+      echo "xai-prefetch: product-pulse deploys — VERCEL_TOKEN not set, skipping"
     fi
     ;;
 
