@@ -23,7 +23,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  issues: read
+  issues: write   # write (was read) so the tick can append dispatch events to the
+                  # Issues-as-state ledger (§3); harmless when STATE_BACKEND is unset/file
   actions: write
 
 env:
@@ -55,6 +56,7 @@ jobs:
       - name: Determine and dispatch scheduled skills
         env:
           GH_TOKEN: ${{ secrets.GH_GLOBAL || secrets.GITHUB_TOKEN }}
+          STATE_BACKEND: ${{ vars.STATE_BACKEND }}
         run: |
           NOW_ISO=$(date -u +%FT%TZ)
           NOW_EPOCH=$(date -u +%s)
@@ -73,12 +75,47 @@ jobs:
           # called by both the per-skill and per-chain loops below.)
 
           # --- Load cron state ---
+          # Issues-as-state (hardening §3) tri-state, matching aeon.yml/chain-runner:
+          #   dual (DEFAULT) — committed file is authoritative; we ALSO mirror each
+          #                    dispatch to the pinned Issue below so the ledger is
+          #                    built up (the dual-write transition).
+          #   issues         — the Issue is source of truth: fold it into the file
+          #                    before reading, and skip the file commit at the end.
+          #   file           — legacy file-only; no Issue reads/writes.
           STATE_FILE="memory/cron-state.json"
+          BACKEND="${STATE_BACKEND:-dual}"
+          if [ "$BACKEND" = "issues" ]; then
+            if GH_REPO="$GITHUB_REPOSITORY" bash scripts/state_store.sh materialize "aeon:cron-state" "$STATE_FILE" >/dev/null 2>&1; then
+              echo "cron-state materialized from the Issues backend"
+            else
+              echo "::warning::could not materialize cron-state from the Issue; using committed file"
+            fi
+          fi
           if [ -f "$STATE_FILE" ] && jq empty "$STATE_FILE" 2>/dev/null; then
             STATE=$(cat "$STATE_FILE")
           else
             STATE='{}'
           fi
+
+          # Mirror a dispatch to the append-only Issue ledger (dual/issues): fold a
+          # "dispatched" event -> last_dispatch (scripts/state_reduce.py) so the
+          # watermark survives without a file commit. Memoizes the issue number and
+          # no-ops in file mode. Used for both skills ("$SKILL") and chains
+          # ("chain:$CH"). $NOW_ISO / $BACKEND are in scope from above.
+          STATE_ISSUE=""
+          STATE_ISSUE_TRIED=false
+          append_dispatch_event() {
+            local key="$1" ev
+            [ "$BACKEND" = "file" ] && return 0
+            if [ "$STATE_ISSUE_TRIED" = "false" ]; then
+              STATE_ISSUE_TRIED=true
+              STATE_ISSUE=$(GH_REPO="$GITHUB_REPOSITORY" bash scripts/state_store.sh ensure "aeon:cron-state" 2>/dev/null | tr -d '[:space:]' || true)
+            fi
+            [ -z "$STATE_ISSUE" ] && return 0
+            ev=$(jq -cn --arg s "$key" --arg ts "$NOW_ISO" '{skill:$s,status:"dispatched",ts:$ts}')
+            GH_REPO="$GITHUB_REPOSITORY" bash scripts/state_store.sh append "$STATE_ISSUE" "$ev" \
+              || echo "::warning::dispatch-event append failed for $key (backend=$BACKEND)"
+          }
 
           # --- Parse aeon.yml ---
           declare -A SKILL_ENABLED SKILL_SCHEDULE SKILL_VAR
@@ -243,9 +280,16 @@ jobs:
           # --- Dispatch chains ---
           for CH in "${MATCHED_CHAINS[@]}"; do
             echo "Dispatching chain: $CH"
-            gh workflow run chain-runner.yml -f chain="$CH"
-            STATE=$(echo "$STATE" | jq --arg s "chain:$CH" --arg ts "$NOW_ISO" \
-              '.[$s].last_dispatch = $ts | .[$s].last_status = "dispatched"')
+            # Same exit-code guard + Issue-ledger mirror as the per-skill dispatch:
+            # only record a dispatch GitHub accepted, so a rejected one retries next
+            # tick instead of being silently marked done.
+            if gh workflow run chain-runner.yml -f chain="$CH"; then
+              STATE=$(echo "$STATE" | jq --arg s "chain:$CH" --arg ts "$NOW_ISO" \
+                '.[$s].last_dispatch = $ts | .[$s].last_status = "dispatched"')
+              append_dispatch_event "chain:$CH"
+            else
+              echo "::warning::chain dispatch failed for $CH — leaving state untouched so the next tick retries"
+            fi
             sleep 2
           done
 
@@ -365,6 +409,7 @@ jobs:
               DISPATCHED+=("$SKILL")
               STATE=$(echo "$STATE" | jq --arg s "$SKILL" --arg ts "$NOW_ISO" \
                 '.[$s].last_dispatch = $ts | .[$s].last_status = "dispatched"')
+              append_dispatch_event "$SKILL"
             else
               echo "::warning::dispatch failed for $SKILL — leaving cron state untouched so the next tick retries"
             fi
@@ -372,8 +417,17 @@ jobs:
             sleep 2
           done
 
-          # --- Commit updated state ---
+          # --- Persist state ---
           mkdir -p memory
+          if [ "$BACKEND" = "issues" ]; then
+            # Issues mode: the pinned Issue is source of truth and the dispatches were
+            # appended above. The file is a dropped projection — discard any working-
+            # tree change so the churn-free end state isn't committed.
+            git checkout -- "$STATE_FILE" 2>/dev/null || rm -f "$STATE_FILE"
+            echo "issues mode: dispatches appended to the Issue; not committing cron-state.json"
+            exit 0
+          fi
+
           echo "$STATE" | jq '.' > "$STATE_FILE"
 
           git add "$STATE_FILE"
