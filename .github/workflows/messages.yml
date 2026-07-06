@@ -76,14 +76,15 @@ jobs:
 
           # --- Load cron state ---
           # Issues-as-state (hardening §3) tri-state, matching aeon.yml/chain-runner:
-          #   dual (DEFAULT) — committed file is authoritative; we ALSO mirror each
-          #                    dispatch to the pinned Issue below so the ledger is
-          #                    built up (the dual-write transition).
-          #   issues         — the Issue is source of truth: fold it into the file
-          #                    before reading, and skip the file commit at the end.
-          #   file           — legacy file-only; no Issue reads/writes.
+          #   file (DEFAULT) — self-contained: commit cron-state.json only, no Issue
+          #                    reads/writes. Best for fork-and-forget; the debt model
+          #                    self-heals the rare commit race (a lost write re-fires).
+          #   dual           — opt-in: file authoritative, but ALSO mirror each dispatch
+          #                    to the pinned Issue so the ledger builds up for a later flip.
+          #   issues         — the Issue is source of truth: fold it into the file before
+          #                    reading, append dispatches, and skip the file commit.
           STATE_FILE="memory/cron-state.json"
-          BACKEND="${STATE_BACKEND:-dual}"
+          BACKEND="${STATE_BACKEND:-file}"
           if [ "$BACKEND" = "issues" ]; then
             if GH_REPO="$GITHUB_REPOSITORY" bash scripts/state_store.sh materialize "aeon:cron-state" "$STATE_FILE" >/dev/null 2>&1; then
               echo "cron-state materialized from the Issues backend"
