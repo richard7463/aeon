@@ -294,10 +294,11 @@ jobs:
           STATE_FILE="memory/cron-state.json"
 
           # Issues backend (hardening §3) — STATE_BACKEND tri-state, matching aeon.yml:
-          # dual (DEFAULT) appends the chain event to the shared state Issue AND keeps
-          # committing the file; issues appends + skips the file/rebase path; file is the
-          # legacy escape hatch. Append failure falls through to the file either way.
-          BACKEND="${STATE_BACKEND:-dual}"
+          # file (DEFAULT) commits the file only, no Issue writes (best for
+          # fork-and-forget); dual also appends the chain event to the shared state
+          # Issue (opt-in transition); issues appends + skips the file/rebase path.
+          # Append failure falls through to the file either way.
+          BACKEND="${STATE_BACKEND:-file}"
           if [ "$BACKEND" != "file" ]; then
             EVENT=$(jq -cn --arg s "chain:$CHAIN" --arg st "$STATUS" --arg ts "$NOW_ISO" \
               '{skill:$s,status:$st,ts:$ts}')

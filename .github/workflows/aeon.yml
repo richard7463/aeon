@@ -1114,17 +1114,19 @@ jobs:
           fi
 
           # Issues-as-state (hardening §3). STATE_BACKEND tri-state:
-          #   dual   (DEFAULT) — append the run event to the pinned state Issue AND keep
-          #                      committing cron-state.json. Readers are unchanged and
-          #                      there is zero staleness risk; the Issue is built up and
-          #                      proven live. This is the dual-write transition.
-          #   issues          — append + SKIP the file-commit/rebase loop (churn-free end
-          #                      state). Requires the pre-run materialize step's reader
-          #                      cutover; flip to this once dual-write is proven.
-          #   file            — legacy file-only escape hatch (no Issue writes).
+          #   file   (DEFAULT) — self-contained: commit cron-state.json only, no Issue
+          #                      writes. Best for fork-and-forget; the debt-model scheduler
+          #                      self-heals the occasional commit race (a lost write just
+          #                      re-fires next tick), so there is no silent-drop risk.
+          #   dual             — opt-in dual-write transition: append the run event to the
+          #                      pinned state Issue AND keep committing the file, building
+          #                      the Issue ledger up so a later `issues` flip is seamless.
+          #   issues           — append + SKIP the file-commit/rebase loop (churn-free).
+          #                      Needs the pre-run materialize; for high-volume operators
+          #                      who also run a ledger-compaction pass.
           # Append failures never lose data: in dual/issues the file path still records
           # the run (issues mode only exits early on a SUCCESSFUL append).
-          BACKEND="${STATE_BACKEND:-dual}"
+          BACKEND="${STATE_BACKEND:-file}"
           if [ "$BACKEND" != "file" ]; then
             EVENT=$(jq -cn --arg s "$SKILL" --arg st "$CRON_STATUS" --arg ts "$NOW_ISO" \
               --argjson q "${QUALITY_SCORE:-0}" --arg err "$ERROR_SIG" \
