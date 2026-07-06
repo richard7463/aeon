@@ -64,6 +64,28 @@ export function authSecretsForHarness(harness: string): string[] {
   return harness === 'grok' ? GROK_AUTH_SECRETS : CLAUDE_AUTH_SECRETS
 }
 
+// Credentials whose CAPABILITY a harness covers with its own built-in tools — so a
+// skill that `requires:` that key is runnable on that harness with the secret unset.
+// Grok Build fetches X/Twitter posts with its built-in WebSearch/WebFetch, which is
+// enough to run the skills that use XAI_API_KEY for the `x_search` prefetch (into
+// .xai-cache/) without the key — at web-search quality, NOT the premium xAI x_search
+// feed. So on the grok harness XAI_API_KEY is not required to get output; we drop the
+// dashboard's "needs key" gate there (only there — claude skills still declare it).
+// The runtime half lives in scripts/run-grok.sh, whose compat `--rules` tell the model
+// to fetch X via WebSearch when the cache + key are absent instead of hard-exiting.
+// The key stays fully settable either way — it powers the prefetch on BOTH harnesses
+// (premium data) and the grok gateway.
+export const HARNESS_NATIVE_KEYS: Record<string, string[]> = {
+  grok: ['XAI_API_KEY'],
+}
+
+// Does `harness` cover `key`'s capability with its own built-in tools (so a skill
+// requiring it runs on that harness with no secret set)? Drives the "covered by
+// <harness>" state in the dashboard's requirement checks.
+export function keyProvidedByHarness(key: string, harness: string): boolean {
+  return (HARNESS_NATIVE_KEYS[harness] ?? []).includes(key)
+}
+
 export const DAYS = [
   { label: 'All', value: -1 }, { label: 'Mon', value: 1 }, { label: 'Tue', value: 2 },
   { label: 'Wed', value: 3 }, { label: 'Thu', value: 4 }, { label: 'Fri', value: 5 },
