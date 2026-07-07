@@ -52,11 +52,6 @@ export const CLAUDE_AUTH_SECRETS = ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KE
 // SELECTED harness (see authSecretsForHarness), never the union below.
 export const GROK_AUTH_SECRETS = ['GROK_CREDENTIALS', 'XAI_API_KEY']
 
-// Union of everything that authenticates ANY harness — for coarse "is the repo
-// authed at all" checks only. Harness-specific UI must use authSecretsForHarness()
-// so switching harness re-evaluates against that harness's own credentials.
-export const AUTH_SECRETS = [...CLAUDE_AUTH_SECRETS, 'GROK_CREDENTIALS']
-
 // The auth-secret set that authenticates the given harness. The client derives
 // auth state from /api/secrets by testing membership against this — so the Auth
 // CTA reappears when you switch to a harness whose own auth isn't set yet.
@@ -93,8 +88,8 @@ export const DAYS = [
 ]
 
 // The skill vocabulary. A skill's `category` IS its pack — one grouping, no
-// separate axis (see docs/skill-packs.md). Mirrors the `categories` map in
-// bin/generate-skills-json, the pack keys in PACKS below, and the `category`
+// separate axis (see docs/skill-packs.md), so PACKS below is this same list.
+// Mirrors the `categories` map in bin/generate-skills-json and the `category`
 // field baked into skills.json. `lab` (category `other`) is the catch-all and
 // isn't author-selectable, so it's absent here.
 export const CATEGORIES: { key: string; label: string; short: string; color: string }[] = [
@@ -109,20 +104,13 @@ export const CATEGORIES: { key: string; label: string; short: string; color: str
 export const CATEGORY_BY_KEY: Record<string, { label: string; color: string }> =
   Object.fromEntries(CATEGORIES.map(c => [c.key, { label: c.label, color: c.color }]))
 
-// First-party packs - the organizing unit across the dashboard (sidebar groups,
-// HQ cards, Packs view). Mirrors packs.json / packs.config.json (key, color).
+// First-party packs — the organizing unit across the dashboard (sidebar groups,
+// HQ cards, Packs view). Because category == pack (one grouping), packs ARE the
+// CATEGORIES list above, kept as one source of truth so the two can't drift.
 // A skill's pack comes from its `pack` field (joined from packs.json in
-// /api/skills); `lab` is the catch-all for uncategorized skills.
-// Pack keys == category keys (one grouping). Order here drives the dashboard's
-// non-default pack order (Core + Basics always render first via DEFAULT_VISIBLE_PACKS).
-const PACKS: { key: string; label: string; short: string; color: string }[] = [
-  { key: 'core',             label: 'Core',               short: 'Core',         color: '#E5484D' },
-  { key: 'evolution',        label: 'Evolution',          short: 'Evolution',    color: '#A855F7' },
-  { key: 'basics',           label: 'Basics',             short: 'Basics',       color: '#30A46C' },
-  { key: 'dev',              label: 'Dev & Code',         short: 'Dev',          color: '#3B82F6' },
-  { key: 'crypto',           label: 'Crypto & Markets',   short: 'Crypto',       color: '#FF6B1A' },
-  { key: 'productivity',     label: 'Productivity',       short: 'Productivity', color: '#06B6D4' },
-]
+// /api/skills); `lab` is the catch-all for uncategorized skills. Order drives the
+// dashboard's non-default pack order (Core + Basics render first via DEFAULT_VISIBLE_PACKS).
+const PACKS = CATEGORIES
 
 export const PACK_BY_KEY: Record<string, { label: string; color: string }> =
   Object.fromEntries(PACKS.map(p => [p.key, { label: p.label, color: p.color }]))
