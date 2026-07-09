@@ -13,7 +13,7 @@
 
 <p align="center">
   <strong>The most autonomous agent framework.</strong><br>
-  Give it a direction - it'll use 59 skills (deep research, PR reviews, market monitoring, Vercel deploys…) to get it done. No approval loops. No babysitting. Configure once, forget forever.
+  Give it a direction — it'll use 59 skills to get it done: ship features to your repos, find and disclose real vulnerabilities, deploy live apps, run deep research — even write new skills for itself. No approval loops. No babysitting. Configure once, forget forever.
 </p>
 
 <p align="center">
@@ -39,12 +39,12 @@ cd aeon && ./aeon
 
 Open [http://localhost:5555](http://localhost:5555) and follow the four steps:
 
-1. **Authenticate** - connect your Claude Pro/Max subscription, or paste an API key: Anthropic, Anthropic-compatible, or a [gateway key](#llm-gateways) (Bankr, OpenRouter, UsePod, Venice, Surplus) - routed automatically.
-2. **Add a channel** - [Telegram, Discord, or Slack](#notifications) so Aeon can talk to you.
+1. **Authenticate** - connect your Claude Pro/Max subscription or your X account (for the [Grok harness](#harnesses)), or paste an API key: Anthropic, Anthropic-compatible, or a [gateway key](#llm-gateways) (Bankr, OpenRouter, UsePod, Venice, Surplus, Grok) - routed automatically.
+2. **Add a channel** - [Telegram, Discord, Slack, or email](#notifications) so Aeon can talk to you.
 3. **Pick skills** - toggle what you want, set schedules. Each skill shows the API keys and MCP servers it needs, with one-click setup.
 4. **Run** - hit **Run now** on any skill to try it immediately; API keys and `var` values apply directly, no push needed. When you change config (schedules, toggles), **Push** commits it to GitHub in one click so Actions runs it on cron.
 
-That's it - Aeon now runs unattended. On a public repo, GitHub Actions minutes are **free**. Run `bin/onboard` anytime to verify your setup.
+That's it - Aeon now runs unattended. On a public repo, GitHub Actions minutes are **free**.
 
 Dashboard views, local dev, env vars, and remote access are documented in [`apps/dashboard/README.md`](../apps/dashboard/README.md).
 
@@ -53,7 +53,7 @@ Dashboard views, local dev, env vars, and remote access are documented in [`apps
 <details>
 <summary><strong>No admin rights / can't install <code>gh</code>?</strong></summary>
 
-Grab the `gh_*_macOS_arm64.zip` (or your platform's binary) from [github.com/cli/cli/releases](https://github.com/cli/cli/releases) and drop it on your `PATH` (e.g. `~/.local/bin`). No installer, no sudo. Then `gh auth login`.
+Grab the `gh_*_macOS_arm64.zip` (or your platform's binary) from [github.com/cli/cli/releases](https://github.com/cli/cli/releases) and drop it on your `PATH` (e.g. `~/.local/bin`). Then `gh auth login`.
 
 </details>
 
@@ -130,6 +130,21 @@ Installed skills land in `skills/` and are added to `aeon.yml` disabled - flip `
 - **Use one skill elsewhere** without forking: drop a portable workflow from [`docs/examples/workflow-templates/`](../docs/examples/workflow-templates) into any repo's `.github/workflows/`.
 - **Label any GitHub issue `ai-build`** - Claude reads the issue, implements it, and opens a PR
 - **Install community packs** - see [Community skill packs](#community-skill-packs)
+
+---
+
+## Proof of work
+
+Aeon isn't a demo reel — its skills ship real, verifiable output in production. A snapshot of what they've done in the wild (live numbers at **[aeon.fun](https://www.aeon.fun)**):
+
+| Skill | In production |
+|-------|---------------|
+| 🛡️ **`vuln-scanner`** | **54 open-source repos secured** — real vulnerabilities found, patched, and responsibly disclosed across projects with **~1.6M combined GitHub stars** (31 rated High/Critical). [Every disclosure →](https://www.aeon.fun/security) |
+| 🌐 **ecosystem** | **72 products & agents** built on Aeon. [`ECOSYSTEM.md`](../docs/ECOSYSTEM.md) |
+| 🛰️ **`fork-fleet`** | **24 active forks** running their own Aeon instances. [`SHOWCASE.md`](../docs/SHOWCASE.md) |
+| 📦 **community** | **10 community skill packs** published to the registry. [`community-skill-packs.md`](../docs/community-skill-packs.md) |
+
+<sub>Security figures are a snapshot as of 2026-07-06; the live dashboard updates continuously.</sub>
 
 ---
 
