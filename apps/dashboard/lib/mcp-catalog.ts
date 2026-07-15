@@ -16,6 +16,15 @@ export interface McpCatalogEntry {
   // header referencing this repo secret, and the MCP panel surfaces a paste-token
   // row for it. Omit for public / OAuth / x402 servers (the existing default).
   authSecret?: string
+  // When true, one-click install runs the dashboard OAuth flow (POST /api/mcp-auth)
+  // instead of wiring a static header: it opens the browser to authorize, captures
+  // the tokens into MCP_<slug>_TOKEN + MCP_<slug>_OAUTH, and scripts/mcp-oauth-
+  // refresh.sh mints a fresh access token before each headless run. Optionally pin
+  // oauthScopes / oauthClientId when the provider needs them (no dynamic client
+  // registration). Mutually exclusive with authSecret.
+  oauth?: boolean
+  oauthScopes?: string[]
+  oauthClientId?: string
 }
 
 export const MCP_CATALOG: McpCatalogEntry[] = [
@@ -25,27 +34,13 @@ export const MCP_CATALOG: McpCatalogEntry[] = [
     url: 'https://mcp.base.org',
     logo: 'https://pbs.twimg.com/profile_images/2060695832840556549/R0s33fMN_400x400.jpg',
     description: 'Base Account access - wallet, portfolio, swaps, signing, x402 payments, and batched contract calls.',
-  },
-  {
-    slug: 'ctrl',
-    name: 'Ctrl',
-    url: 'https://www.ctrl.build/mcp',
-    logo: 'https://pbs.twimg.com/profile_images/2039734967681597440/Hh_-fXR8_400x400.jpg',
-    description: 'Ctrl MCP server.',
-  },
-  {
-    slug: 'rootai',
-    name: 'RootAI',
-    url: 'https://mcp.rootedge.ai/pro',
-    logo: 'https://pbs.twimg.com/profile_images/2070604629688070144/xNwUGHgX_400x400.jpg',
-    description: 'RootAI Edge MCP - crypto market intelligence across Hyperliquid, Base & Paradex: funding-arbitrage scans, cross-exchange spreads, and best-execution routing. Discovery and free tools are no-cost; premium tools settle per-call in USDC via x402.',
-  },
-  {
-    slug: 'blueagent',
-    name: 'BlueAgent',
-    url: 'https://blueagent.dev/api/mcp',
-    logo: 'https://pbs.twimg.com/profile_images/2047719472455438336/CFrEyoNZ_400x400.jpg',
-    description: 'BlueAgent - the AI founder console for Base builders: idea, build, audit, ship, and raise, from concept to deployment.',
+    // Base is its own OAuth authorization server: no Protected Resource Metadata,
+    // but full AS metadata (+ DCR) at https://mcp.base.org/.well-known/oauth-authorization-server.
+    // discover() falls back to the MCP origin, so Connect works one-click. We request
+    // only the least-privilege transact scope by default; `agent_wallet:escalate` is
+    // also offered by the server for elevated actions.
+    oauth: true,
+    oauthScopes: ['agent_wallet:transact'],
   },
   {
     slug: 'robinhood-trading',
@@ -53,6 +48,7 @@ export const MCP_CATALOG: McpCatalogEntry[] = [
     url: 'https://agent.robinhood.com/mcp/trading',
     logo: 'https://pbs.twimg.com/profile_images/1844399977482813442/1fTlYz2c_400x400.png',
     description: 'Robinhood Agentic Trading - read your portfolio, buying power, positions, and order history, and place trades from your agent. Remote HTTP MCP with OAuth; trades execute in a dedicated Agentic brokerage account you authorize. You are responsible for every order your agent places.',
+    oauth: true,
   },
   {
     slug: 'glim',
@@ -60,15 +56,6 @@ export const MCP_CATALOG: McpCatalogEntry[] = [
     url: 'https://glim.sh/mcp',
     logo: 'https://raw.githubusercontent.com/glim-sh/glim-mcp/main/assets/icon-400.png',
     description: 'glim.sh - live data for AI agents: web search, full page extraction, Twitter/X, Reddit, GitHub, Amazon, YouTube transcripts. Pay-per-call with x402 (Base/Solana USDC) or MPP (Tempo), or sign in and draw from a prepaid account balance.',
-  },
-  {
-    slug: 'litebeam',
-    name: 'Litebeam',
-    url: 'https://mcp.litebeam.xyz',
-    logo: 'https://pbs.twimg.com/profile_images/2065063781042954241/zcTqmW5j_400x400.jpg',
-    description: 'Litebeam - one MCP connection to every microservice. An AI-microservice routing layer: discover and call paid services through a single endpoint, settled from your agent\'s wallet (managed Litebeam wallet or BYO via x402), with budget controls and HITL approvals.',
-    transport: 'sse',
-    authSecret: 'LITEBEAM_API_KEY',
   },
 ]
 
