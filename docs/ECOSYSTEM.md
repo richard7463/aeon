@@ -40,11 +40,10 @@ These are the projects we know of that run Aeon, extend it, or integrate with th
 | <img src="https://pbs.twimg.com/profile_images/2062582278920777728/MSpcDfF-_400x400.jpg" width="36" height="36" alt="ClawHunter logo"> | ClawHunter | [@clawhuntersol](https://x.com/clawhuntersol) |
 | <img src="https://pbs.twimg.com/profile_images/2058054817516548096/e0qPRxNW_400x400.jpg" width="36" height="36" alt="Clerk logo"> | Clerk | [@agent_clerk](https://x.com/agent_clerk) |
 | <img src="https://pbs.twimg.com/profile_images/2039705524166660096/mcVkmNR3_400x400.jpg" width="36" height="36" alt="Cobot logo"> | Cobot | [@cobotgg](https://x.com/cobotgg) |
-| <img src="https://pbs.twimg.com/profile_images/2039734967681597440/Hh_-fXR8_400x400.jpg" width="36" height="36" alt="CTRL logo"> | CTRL | [@CTRL_automation](https://x.com/CTRL_automation) |
+| <img src="https://pbs.twimg.com/profile_images/2075170344957083648/AR-5asAz_400x400.jpg" width="36" height="36" alt="CTRL logo"> | CTRL | [@CTRL_automation](https://x.com/CTRL_automation) |
 | <img src="https://pbs.twimg.com/profile_images/2070145040882544640/P8NilHgr_400x400.jpg" width="36" height="36" alt="DarkSol logo"> | DarkSol | [@Darks0l_](https://x.com/Darks0l_) |
 | <img src="https://pbs.twimg.com/profile_images/2057284361066569728/K5ZhxKXY_400x400.png" width="36" height="36" alt="Echo Oracle logo"> | Echo Oracle | [@BuiltByEcho](https://x.com/BuiltByEcho) · [builtbyecho.xyz](https://www.builtbyecho.xyz/) |
 | <img src="https://pbs.twimg.com/profile_images/2057534847216988160/SDVPe4rG_400x400.jpg" width="36" height="36" alt="GitBlock logo"> | GitBlock | [@gitblock_](https://x.com/gitblock_) |
-| <img src="https://pbs.twimg.com/profile_images/2056356306726887424/2DrOBX8R_400x400.jpg" width="36" height="36" alt="GitBounty logo"> | GitBounty | [@Gitlawbounty](https://x.com/Gitlawbounty) |
 | <img src="https://pbs.twimg.com/profile_images/2069099785936891904/fbvZqtoT_400x400.jpg" width="36" height="36" alt="GitKernal logo"> | GitKernal | [@gitkernal](https://x.com/gitkernal) |
 | <img src="https://pbs.twimg.com/profile_images/2056261441192419328/X6pFHgHc_400x400.jpg" width="36" height="36" alt="Gitlawb Terminal logo"> | Gitlawb Terminal | [@terminalgitlawb](https://x.com/terminalgitlawb) |
 | <img src="https://pbs.twimg.com/profile_images/2065134999163080704/IGp7PE1Q_400x400.jpg" width="36" height="36" alt="Glim.sh logo"> | Glim.sh | [@glim_sh](https://x.com/glim_sh) |
@@ -65,7 +64,7 @@ These are the projects we know of that run Aeon, extend it, or integrate with th
 | <img src="https://pbs.twimg.com/profile_images/2050098727512322048/bS61Qs6N_400x400.jpg" width="36" height="36" alt="NoelClaw logo"> | NoelClaw | [@noelclawfun](https://x.com/noelclawfun) |
 | <img src="https://pbs.twimg.com/profile_images/2067718393411579904/PzuiIBSz_400x400.jpg" width="36" height="36" alt="NÜMETAL logo"> | NÜMETAL | [@numetalxyz](https://x.com/numetalxyz) |
 | <img src="https://pbs.twimg.com/profile_images/2004910939959967744/wr7-zpVh_400x400.jpg" width="36" height="36" alt="PancakeSwap logo"> | PancakeSwap | [@PancakeSwap](https://x.com/PancakeSwap) |
-| <img src="https://pbs.twimg.com/profile_images/2069016731025354752/HSERdcJZ_400x400.png" width="36" height="36" alt="Phylax logo"> | Phylax | [@usephylax](https://x.com/usephylax) |
+| <img src="https://pbs.twimg.com/profile_images/2074837243529998336/8STlbW_i_400x400.jpg" width="36" height="36" alt="Phylax logo"> | Phylax | [@usephylax](https://x.com/usephylax) |
 | <img src="https://pbs.twimg.com/profile_images/1725595719086530560/n--iy1A9_400x400.jpg" width="36" height="36" alt="Powerloom logo"> | Powerloom | [@Powerloom](https://x.com/Powerloom) |
 | <img src="https://pbs.twimg.com/profile_images/1858962630796603393/iIb9x5CQ_400x400.jpg" width="36" height="36" alt="Precog logo"> | Precog | [@precogmarkets](https://x.com/precogmarkets) |
 | <img src="https://pbs.twimg.com/profile_images/2059296486391717888/QL10hnaj_400x400.jpg" width="36" height="36" alt="Prism logo"> | Prism | [@prism_lp](https://x.com/prism_lp) |
