@@ -561,16 +561,12 @@ jobs:
           # Optional Langfuse OTEL tracing — sourced after the gateway in each
           # claude attempt below. Self-gates on LANGFUSE_* and never fails the run.
           LF="${GITHUB_WORKSPACE}/scripts/langfuse-otel.sh"
-          if [ "$HARNESS" = "grok" ]; then
-            # Set the post-run scorer's routing hint: route its `claude -p` scoring
-            # call to xAI (Anthropic-compatible) when an API key is present, else
-            # direct (scoring then just no-ops gracefully if no Anthropic creds).
-            if [ -n "${XAI_API_KEY:-}" ]; then echo "GATEWAY=grok" >> "$GITHUB_OUTPUT"; else echo "GATEWAY=direct" >> "$GITHUB_OUTPUT"; fi
-          elif [ "$HARNESS" != "claude" ]; then
-            # Same reasoning as grok: the run-harness harnesses carry their own
-            # auth (staged in "Install harness CLI") and never touch the gateway.
-            # The scorer routes through run-harness too, so there is no `claude -p`
-            # call left to hint at — emit the output only so it is always defined.
+          if [ "$HARNESS" != "claude" ]; then
+            # The run-harness harnesses carry their own auth (staged in "Install
+            # harness CLI") and never touch the gateway. The scorer routes through
+            # run-harness too, so there is no `claude -p` call left to hint at —
+            # emit the output only so it is always defined. Both readers of
+            # steps.run.outputs.GATEWAY are gated on HARNESS == 'claude'.
             echo "GATEWAY=$HARNESS" >> "$GITHUB_OUTPUT"
           else
             GATEWAY=$(grep -A1 '^gateway:' aeon.yml | grep 'provider:' | sed 's/.*provider:[[:space:]]*//' | sed "s/[\"' ]//g" || true)
@@ -810,6 +806,16 @@ jobs:
             # run-harness's diagnostics are the only signal when a harness stalls;
             # surface them in the step log either way, not just on failure.
             tail -c 4000 /tmp/harness-stderr.txt >&2 || true
+            # harness-adapter/lib/envelope.sh's wrap_raw_output turns output the
+            # adapter could not parse into a schema-valid SUCCESS envelope and
+            # exits 0, so the run lands here green and the blob below becomes the
+            # skill's published deliverable. That is being measured before it is
+            # turned into a hard failure (see the comment on that function), so
+            # promote its marker to a ::warning:: - countable from the Actions API
+            # without downloading logs. When the count is known, make it fatal.
+            if grep -q 'rh-wrap-fallback:' /tmp/harness-stderr.txt 2>/dev/null; then
+              echo "::warning::$HARNESS output was unparseable and wrapped as success. This run is GREEN but its output may be junk: $(grep -m1 'rh-wrap-fallback:' /tmp/harness-stderr.txt | tr -d '\r')"
+            fi
             if [ "$CLAUDE_OK" != "1" ]; then
               echo "::error::run-harness $HARNESS failed: $(tail -c 200 /tmp/harness-stderr.txt | tr '\n' ' ')"
               tail -c 500 /tmp/harness-stderr.txt | tr '\n' ' ' | cut -c1-200 > /tmp/skill-error.txt

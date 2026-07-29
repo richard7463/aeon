@@ -3,10 +3,9 @@
 // tokens as repo secrets + wiring the server into .mcp.json. Kept out of
 // lib/mcp-oauth.ts so that module stays pure/fetch-only and unit-testable; this
 // one imports gh + the child_process/github helpers.
-import { execFileSync } from 'child_process'
-import { ghArgsRepo } from './gh'
+import { ghSecretSet } from './gh'
 import type { McpServer } from './types'
-import { tokenVar, oauthVar, type TokenSet } from './mcp-oauth'
+import { tokenVar, oauthVar, type TokenSet, type OAuthSecret } from './mcp-oauth'
 
 export interface PendingFlow {
   slug: string
@@ -32,13 +31,6 @@ export const pendingFlows = new Map<string, PendingFlow>()
 // Ample time for the operator to approve in the browser, under Node's request cap.
 export const OAUTH_TIMEOUT_MS = 240_000
 
-function ghSecretSet(name: string, value: string): void {
-  execFileSync('gh', ['secret', 'set', name, ...ghArgsRepo()], {
-    input: value,
-    stdio: ['pipe', 'pipe', 'pipe'],
-  })
-}
-
 // Persist the captured tokens as repo secrets and return the .mcp.json server
 // descriptor for the caller (the panel) to add via its normal save path — keeping
 // .mcp.json single-writer and the panel state in sync without a reload:
@@ -50,7 +42,9 @@ export function storeSecrets(flow: PendingFlow, tokens: TokenSet): { durable: bo
   ghSecretSet(tokenVar(flow.slug), tokens.access_token)
 
   const durable = Boolean(tokens.refresh_token)
-  if (durable) {
+  // Narrow on the value, not on `durable` — the boolean doesn't carry the
+  // refresh token's non-undefined-ness into the block.
+  if (tokens.refresh_token) {
     ghSecretSet(oauthVar(flow.slug), JSON.stringify({
       token_endpoint: flow.tokenEndpoint,
       client_id: flow.clientId,
@@ -58,7 +52,7 @@ export function storeSecrets(flow: PendingFlow, tokens: TokenSet): { durable: bo
       refresh_token: tokens.refresh_token,
       ...(tokens.scope ? { scope: tokens.scope } : {}),
       slug: flow.slug,
-    }))
+    } satisfies OAuthSecret))
   }
 
   const server: McpServer = {
