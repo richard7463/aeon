@@ -28,7 +28,7 @@ skills:
   tx-explain: { enabled: false, schedule: "workflow_dispatch", var: "" } # var: tx hash — plain-English decode
   deploy-uni-hook:
     {
-      enabled: false,
+      enabled: true,
       schedule: "0 */1 * * *",
       harness: "claude",
       model: "claude-opus-5",
