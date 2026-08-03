@@ -1,0 +1,13 @@
+services:
+  ai2human-handoff:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ai2human-state:/opt/ai2human-handoff/.ai2human-state
+      - ai2human-logs:/opt/ai2human-handoff/logs
+
+volumes:
+  ai2human-state:
+  ai2human-logs:

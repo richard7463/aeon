@@ -1,0 +1,6 @@
+# AI2Human Handoff — every 15 minutes.
+# Install with: crontab -e  (add the line below, adjust the path)
+*/15 * * * * cd /opt/ai2human-handoff && ./deploy/ai2human-handoff/run-cycle.sh >> logs/cycle.log 2>&1
+
+# Optional: dispatch-only on demand (after dropping intents into .pending-ai2human/creates/)
+# 30 * * * * cd /opt/ai2human-handoff && ./deploy/ai2human-handoff/run-cycle.sh >> logs/cycle.log 2>&1
