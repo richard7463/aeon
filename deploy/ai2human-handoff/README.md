@@ -1,4 +1,4 @@
-# Deploy AI2Human Handoff on a server
+# Deploy AI2Human Create Task on a server
 
 The handoff loop (`create` + `poll`) is plain Node.js talking to public HTTP APIs, so it runs anywhere with Node 18+ — no GitHub Actions required. This directory contains a cron-style setup and a Docker setup.
 

@@ -1,5 +1,5 @@
 ---
-name: AI2Human Handoff
+name: AI2Human Create Task
 description: Route a blocked step to AI2Human when a workflow needs a real human, a public account action, screenshot-backed proof, local confirmation, or manual review before settlement. Creates a human-execution task, then follows task -> human execution -> proof -> verify -> settle until the loop closes.
 var: ""
 commits: true

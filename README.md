@@ -458,7 +458,7 @@ To browse known packs without installing, run `./install-skill-pack --list` — 
 | [aeon-skills](https://github.com/AntFleet/aeon-skills) | 1 | Two-model-consensus PR review (Opus 4.7 + GPT-5) — per-review USDC drawdown on Base |
 | [aeon-skill-pack-liquidpad](https://github.com/liquidpadbot/aeon-skill-pack-liquidpad) | 4 | Track LiquidPad on Base — burn cycle alerts, new token launches with onchain provenance, daily protocol digest, and fee accrual tracking |
 | [aeon-skill-pack-mythosforge](https://github.com/ryjin111/aeon-skill-pack-mythosforge) | 5 | Read-only MythosForge monitoring — ops/backlog/jury/payout health, proof-of-creation integrity on Base, theme/round guard against silent relabels, jury-drift detection, and live gallery/proof-page QA |
-| [ai2human-aeon-skill-pack](https://github.com/richard7463/ai2human-aeon-skill-pack) | 1 | Human execution for Aeon — dispatch blocked human steps to AI2Human, follow proof -> verify -> settle |
+| [AI2Human Create Task](https://github.com/richard7463/ai2human-aeon-skill-pack) | 1 | Human execution for Aeon — dispatch blocked human steps to AI2Human, follow proof -> verify -> settle |
 
 **To list a pack here**, open a PR adding a row. Guidelines:
 
