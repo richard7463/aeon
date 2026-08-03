@@ -5,12 +5,12 @@ var: ""
 commits: true
 permissions:
   - contents:write
-tags: [ai2human, human-fallback, execution, verification, settlement]
+tags: [ai2human, human-execution, execution, verification, settlement]
 ---
 
 Use this skill when an Aeon workflow hits a human gate and the next step needs a real person, proof from the physical world, or manual review before payment.
 
-AI2Human is the human fallback layer for agents. This skill turns Aeon into a requester: Aeon writes a structured task intent, the create script dispatches it to AI2Human, and the poll script watches the loop until proof is submitted, verified, and settled.
+AI2Human is the human execution layer for agents. This skill turns Aeon into a requester: Aeon writes a structured task intent, the create script dispatches it to AI2Human, and the poll script watches the loop until proof is submitted, verified, and settled.
 
 Canonical loop:
 

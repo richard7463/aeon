@@ -2,7 +2,7 @@
 
 ## Purpose
 
-AI2Human is the human fallback layer for agents. This skill makes Aeon a requester: when a workflow hits a human gate — a real social account action, local verification, signature, pickup, or photo-backed proof — Aeon dispatches a structured task to AI2Human and follows it through `task -> human execution -> proof -> verify -> settle`.
+AI2Human is the human execution layer for agents. This skill makes Aeon a requester: when a workflow hits a human gate — a real social account action, local verification, signature, pickup, or photo-backed proof — Aeon dispatches a structured task to AI2Human and follows it through `task -> human execution -> proof -> verify -> settle`.
 
 This complements the existing `ai2human-reward-campaign-reconciler` watchdog:
 
