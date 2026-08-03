@@ -8,6 +8,11 @@
 import { readdir, readFile, writeFile, mkdir, appendFile, rename } from "node:fs/promises";
 import path from "node:path";
 
+// --direct '<json>' mode: dispatch a single inline intent without the
+// .pending-ai2human/creates/ directory flow. Used by skill-pack installs.
+const directArgIndex = process.argv.findIndex((arg) => arg === "--direct");
+const directJson = directArgIndex >= 0 ? process.argv[directArgIndex + 1] : null;
+
 const baseUrl = (process.env.AI2HUMAN_BASE_URL || "https://ai2human.io").replace(/\/+$/, "");
 const apiKey = process.env.AI2HUMAN_AGENT_KEY || process.env.AI2HUMAN_API_KEY || "";
 const forceDryRun = String(process.env.AI2HUMAN_DRY_RUN || "").toLowerCase() === "true";
@@ -190,11 +195,25 @@ async function main() {
   const startedAt = new Date().toISOString();
   const state = await loadState();
   const existing = new Set(state.tasks.map((task) => task.intentId));
-  const files = await listIntentFiles();
 
-  if (files.length === 0) {
-    console.log("AI2HUMAN_HANDOFF_NO_INTENTS");
-    return;
+  const intents = [];
+  if (directJson) {
+    let parsed;
+    try {
+      parsed = JSON.parse(directJson);
+    } catch (error) {
+      fail("--direct payload is not valid JSON", { error: error.message });
+    }
+    intents.push({ file: "direct", intent: parsed });
+  } else {
+    const files = await listIntentFiles();
+    if (files.length === 0) {
+      console.log("AI2HUMAN_HANDOFF_NO_INTENTS");
+      return;
+    }
+    for (const file of files) {
+      intents.push({ file, intent: await readJson(path.join(createDir, file), {}) });
+    }
   }
 
   const dispatched = [];
@@ -202,9 +221,7 @@ async function main() {
   const dryRun = [];
   const invalid = [];
 
-  for (const file of files) {
-    const intentPath = path.join(createDir, file);
-    const intent = await readJson(intentPath, {});
+  for (const { file, intent } of intents) {
     const errors = validateIntent(intent);
 
     if (Object.keys(errors).length > 0) {
@@ -221,7 +238,7 @@ async function main() {
     if (isDryRun) {
       await mkdir(dryDir, { recursive: true });
       await writeFile(
-        path.join(dryDir, file),
+        path.join(dryDir, file === "direct" ? "direct.json" : file),
         JSON.stringify({ ...intent, dryRun: true, createdAt: startedAt, payload: buildPayload(intent) }, null, 2)
       );
       dryRun.push({ intentId: intent.intentId, file });
@@ -249,8 +266,11 @@ async function main() {
     });
     dispatched.push({ intentId: intent.intentId, taskId: payload.task_id, taskUrl: payload.task_url });
 
-    await mkdir(doneDir, { recursive: true });
-    await rename(intentPath, path.join(doneDir, file)).catch(() => {});
+    if (file !== "direct") {
+      const intentPath = path.join(createDir, file);
+      await mkdir(doneDir, { recursive: true });
+      await rename(intentPath, path.join(doneDir, file)).catch(() => {});
+    }
   }
 
   await saveState(state);
