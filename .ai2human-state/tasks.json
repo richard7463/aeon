@@ -6,11 +6,11 @@
       "title": "Aeon x AI2Human handoff test — submit a screenshot and a note",
       "category": "digital_task",
       "taskUrl": "https://ai2human.io/tasks/d4575aec-0a69-4c7a-a8a8-8c85b6c77fe5",
-      "status": "live",
+      "status": "created",
       "evidenceCount": 0,
       "paymentSeen": false,
       "createdAt": "2026-08-03T09:20:21.260Z",
-      "lastPolledAt": null,
+      "lastPolledAt": "2026-08-03T09:22:16.396Z",
       "notified": {
         "created": true,
         "submitted": false,
