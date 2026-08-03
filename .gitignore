@@ -18,6 +18,7 @@
 .pending-deploy/
 .pending-devto/
 .pending-farcaster/
+.pending-ai2human/
 .tg_cache/
 
 # Skill provenance lock (per-repo, not committed)

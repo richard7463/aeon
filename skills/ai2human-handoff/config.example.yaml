@@ -1,0 +1,27 @@
+# ai2human-handoff reusable defaults.
+# Copy to config.yaml and fill in. Every task intent can override these.
+defaults:
+  # developer API key is read from the AI2HUMAN_AGENT_KEY secret, not this file
+  requesterName: Aeon
+  requesterHandle: "@aeonframework"
+  agentName: Aeon
+  defaultRewardUsdc: 5
+  defaultDeadlineHours: 48
+  # true = build intents only, never dispatch (safe default)
+  dryRun: true
+
+# Example intents. Enable by copying into .pending-ai2human/creates/ at run time,
+# or leave empty and let the workflow's var / task input drive each dispatch.
+intents: []
+
+# Example of an armed intent (set dryRun: false only when ready to pay):
+# intents:
+#   - intentId: "merchant-check-demo"
+#     title: "Verify Merchant X is open"
+#     description: "Visit the location, confirm operations, submit photo + timestamp evidence."
+#     category: "local_verification"
+#     rewardUsdc: 5
+#     deadlineHours: 48
+#     proofRequirements: ["photo", "timestamp"]
+#     location: "123 Main St"
+#     dryRun: false

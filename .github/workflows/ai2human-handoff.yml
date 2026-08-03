@@ -1,0 +1,85 @@
+name: AI2Human Handoff
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai2human-handoff
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Dispatch queued AI2Human tasks
+        env:
+          AI2HUMAN_AGENT_KEY: ${{ secrets.AI2HUMAN_AGENT_KEY }}
+          AI2HUMAN_BASE_URL: ${{ vars.AI2HUMAN_BASE_URL || 'https://ai2human.io' }}
+          AI2HUMAN_DRY_RUN: ${{ vars.AI2HUMAN_DRY_RUN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: node scripts/ai2human-handoff-create.mjs
+
+      - name: Persist AI2Human state
+        run: |
+          git config user.name "ai2human-handoff-bot"
+          git config user.email "ai2human-handoff-bot@users.noreply.github.com"
+          git add .ai2human-state
+          if git diff --cached --quiet; then
+            echo "AI2HUMAN_HANDOFF_NO_STATE_CHANGES"
+          else
+            git commit -m "ai2human-handoff: persist dispatched task state"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+  poll:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Poll open AI2Human tasks
+        env:
+          AI2HUMAN_AGENT_KEY: ${{ secrets.AI2HUMAN_AGENT_KEY }}
+          AI2HUMAN_BASE_URL: ${{ vars.AI2HUMAN_BASE_URL || 'https://ai2human.io' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: node scripts/ai2human-handoff-poll.mjs
+
+      - name: Persist AI2Human state
+        run: |
+          git config user.name "ai2human-handoff-bot"
+          git config user.email "ai2human-handoff-bot@users.noreply.github.com"
+          git add .ai2human-state
+          if git diff --cached --quiet; then
+            echo "AI2HUMAN_HANDOFF_NO_STATE_CHANGES"
+          else
+            git commit -m "ai2human-handoff: persist poll state"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi

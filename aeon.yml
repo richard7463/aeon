@@ -162,6 +162,7 @@ skills:
   auto-workflow: { enabled: false, schedule: "workflow_dispatch", var: "" } # on-demand — var: URL to analyze
   onboard: { enabled: false, schedule: "workflow_dispatch", var: "" } # one-shot setup validator — checks secrets/workflows/memory writability and notifies a checklist with fix commands; pair with ./onboard CLI
   ai2human-reward-campaign-reconciler: { enabled: false, schedule: "workflow_dispatch", var: "" } # manual audit for the AI2Human reward campaign watchdog; primary automation runs in .github/workflows/ai2human-reward-campaigns.yml every 10 min
+  ai2human-handoff: { enabled: false, schedule: "workflow_dispatch", var: "" } # dispatch blocked human steps to AI2Human; lifecycle poll runs via .github/workflows/ai2human-handoff.yml every 15 min
 
   # --- Ported from derivative instances (PR #219) ---
   # Markets & crypto
